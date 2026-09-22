@@ -1,5 +1,5 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
-const {JSDOM}=require('./.ui-deps/node_modules/jsdom');
+const {JSDOM}=require('jsdom');
 const source=fs.readFileSync('dist/app.js','utf8');
 const s={data:{ai:{configured:true,provider:'openrouter',endpoint:'https://openrouter.ai/api/v1/chat/completions',model:'test',label:'OpenRouter'},profile:{name:'Test'}},chatMessages:[],chatFiles:[],chatInput:''};
 const ctx=vm.createContext({s,e:x=>String(x??'').replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;'),hardFormat:x=>x,isOpenRouter:ai=>ai.provider==='openrouter'});

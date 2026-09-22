@@ -1,4 +1,4 @@
-const fs=require('node:fs'),assert=require('node:assert/strict'),{JSDOM}=require('./.ui-deps/node_modules/jsdom');
+const fs=require('node:fs'),assert=require('node:assert/strict'),{JSDOM}=require('jsdom');
 const dom=new JSDOM('<button id="read">Read aloud</button><main id="main"><button>Unnecessary control</button><article class="chat-message assistant"><div class="chat-text">Earlier answer</div></article><article class="chat-message assistant"><div class="chat-text"><p>I am HARD. Useful answer.</p><pre>secret code block</pre><button>Copy</button></div></article></main>',{runScripts:'outside-only',url:'http://localhost'}),w=dom.window;
 let spoken=[];w.speechSynthesis={getVoices:()=>[{voiceURI:'local',localService:true,lang:'en-GB',name:'Local English'}],speak:u=>spoken.push(u),cancel:()=>spoken=[]};w.SpeechSynthesisUtterance=function(t){this.text=t};
 w.$=id=>w.document.getElementById(id);w.main=w.$('main');w.say=()=>{};

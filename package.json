@@ -1,0 +1,11 @@
+{
+  "name": "hard-assistant-checks",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "test": "node scripts/test-ui.cjs"
+  },
+  "devDependencies": {
+    "jsdom": "29.1.1"
+  }
+}

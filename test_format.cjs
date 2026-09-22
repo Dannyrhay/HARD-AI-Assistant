@@ -1,4 +1,4 @@
-const fs=require('node:fs'),assert=require('node:assert/strict'),{JSDOM}=require('./.ui-deps/node_modules/jsdom');
+const fs=require('node:fs'),assert=require('node:assert/strict'),{JSDOM}=require('jsdom');
 const dom=new JSDOM('<div id="result"></div>',{runScripts:'outside-only'}),w=dom.window;
 for(const f of ['markdown-it.min.js','purify.min.js','format.js']){console.log('Loading',f);w.eval(fs.readFileSync('dist/'+f,'utf8'))};console.log('Loaded');
 const render=t=>{w.document.querySelector('#result').innerHTML=w.hardFormat(t);return w.document.querySelector('#result')};

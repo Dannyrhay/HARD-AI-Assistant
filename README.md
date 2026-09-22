@@ -90,3 +90,13 @@ Open a document, read the sharing notice, then request an AI second opinion. Onl
 
 ### Public web search
 Choose an OpenRouter connection and turn Web on beside Send. Off by default. Queries may include conversation details and are shared with an external search engine; search charges may apply. Each answer permits at most two Exa searches, three results per search. Sources are saved with chat history; no-source responses are explicitly labelled. Other direct provider connections do not yet offer this switch. Retry preserves the original Web setting; Edit message allows changing it.
+
+## Continuous integration
+
+[![HARD CI](https://github.com/Dannyrhay/HARD-AI-Assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/Dannyrhay/HARD-AI-Assistant/actions/workflows/ci.yml)
+
+Every push and pull request runs the Python suite and all `test_*.cjs` interface checks on Windows, builds the desktop executable, and checks the packaged local service starts successfully. Runs can also be started manually in Actions. CI uses synthetic data and mocked providers; no API keys or mailbox credentials are required.
+
+To run interface checks locally, install Node.js 24, run `npm ci`, then `npm test`. Python tests use `./.desktop-venv/Scripts/python.exe -m unittest discover -v` after installing `requirements-desktop-lock.txt` into that environment.
+
+CI does not verify live email delivery, paid AI calls, microphone hardware, the interactive desktop window or activated Microsoft Word conversion. Those still require desktop acceptance checks.

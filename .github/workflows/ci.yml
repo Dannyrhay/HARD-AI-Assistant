@@ -1,0 +1,55 @@
+name: HARD CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hard-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Windows tests and desktop build
+    runs-on: windows-2022
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-desktop-lock.txt
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install locked Python dependencies
+        run: |
+          python -m venv .desktop-venv
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./.desktop-venv/Scripts/python.exe -m pip install -r requirements-desktop-lock.txt
+      - name: Install locked interface test dependencies
+        run: npm ci
+      - name: Run Python tests
+        run: ./.desktop-venv/Scripts/python.exe -m unittest discover -v
+      - name: Run interface tests and JavaScript syntax checks
+        run: npm test
+      - name: Build Windows desktop app
+        run: ./Build-Desktop.ps1
+      - name: Check packaged application startup
+        run: |
+          @'
+          import subprocess
+          from pathlib import Path
+          exe = Path('release/HARD Assistant/HARD Assistant.exe').resolve()
+          result = subprocess.run([str(exe), '--smoke-test'], timeout=60)
+          raise SystemExit(result.returncode)
+          '@ | ./.desktop-venv/Scripts/python.exe -

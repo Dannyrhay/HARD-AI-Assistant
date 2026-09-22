@@ -1,4 +1,4 @@
-const fs=require('node:fs'),assert=require('node:assert/strict'),{JSDOM}=require('./.ui-deps/node_modules/jsdom');
+const fs=require('node:fs'),assert=require('node:assert/strict'),{JSDOM}=require('jsdom');
 const dom=new JSDOM('<main id="main"></main>',{runScripts:'outside-only',url:'http://localhost/'}),w=dom.window;
 for(const f of ['markdown-it.min.js','purify.min.js','format.js'])w.eval(fs.readFileSync('dist/'+f,'utf8'));
 let source=fs.readFileSync('dist/app.js','utf8');source=source.slice(0,source.lastIndexOf('document.documentElement.style.fontSize=preference()'));

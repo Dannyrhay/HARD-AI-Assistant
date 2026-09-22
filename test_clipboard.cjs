@@ -12,7 +12,7 @@ assert(!source.includes('message-edit-tools'));assert(source.includes('onpaste=p
 assert(source.includes('selected.length+s.chatFiles.length>3'));assert(source.includes('12*1024*1024'));
 console.log('Image paste, clipboard item fallback, text defaults, unsupported formats and busy guards passed.');
 
-const {JSDOM}=require('./.ui-deps/node_modules/jsdom');
+const {JSDOM}=require('jsdom');
 const dom=new JSDOM('<textarea id="request"></textarea>',{url:'http://localhost',runScripts:'outside-only'}),w=dom.window;
 let previews=0;w.s={chatFiles:[]};w.$=id=>w.document.getElementById(id);w.render=()=>{};w.api=async(path,body)=>{assert.equal(path,'/api/attachment-preview');assert(body.data);previews++;return {images:[{mime:'image/jpeg',data:'fixture'}]}};
 w.eval(source.slice(source.indexOf('async function addChatFiles('),source.indexOf('function chatKeydown(')));
