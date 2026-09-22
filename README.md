@@ -1,6 +1,6 @@
 # HARD Assistant
 
-A local Windows assistant for Dr Stephen Maxwell Donkor, Holland Africa Research & Development.
+HARD (Holland Africa Research & Development) is a local Windows AI assistant for managing documents, finding files, preparing emails and getting help through chat. It supports individual users and professionals across different fields, with a profile each user can personalise.
 
 **Release status: development build, not production-ready. Do not publish the static directory as a working application.** The interface now depends on the local Python service. No accounts, credentials or original user folders are preconfigured.
 
@@ -48,7 +48,7 @@ Disconnect removes HARD's saved local token. It does not revoke the provider's s
 
 `.data/` contains copied documents, review notes, contacts, drafts and audit events. Tokens are encrypted for the current Windows user. The documents/database are local plaintext protected by the Windows account/filesystem; no application-level encryption, backup schedule or installer has been implemented. Back up `.data` only while HARD is stopped. Never include `.data`, `.test-data`, tokens or OAuth credentials in source control or hosting archives.
 
-Test fixtures are fictional and stored in `.test-data/`. Isolated automated tests use temporary directories. Do not confuse test accounts/contacts with Dr Donkor's real contacts. Reopening an in-flight send after a crash marks it uncertain; inspect the provider's Sent folder before deciding what to do.
+Test fixtures are fictional and stored in `.test-data/`. Isolated automated tests use temporary directories. Keep fictional test accounts and contacts separate from real user data. Reopening an in-flight send after a crash marks it uncertain; inspect the provider's Sent folder before deciding what to do.
 
 ## Verification
 
@@ -62,19 +62,11 @@ Tests exercise file boundaries, original preservation, duplicate import, review 
 ## Required before production
 
 1. Live Google and Microsoft OAuth/token-refresh/revocation tests and approved send/receive/failure-message tests.
-2. AI provider selection, data-transmission consent, factual/linguistic review implementation and evaluation using representative water-consultancy documents.
+2. AI provider selection, data-transmission consent, factual/linguistic review implementation and evaluation using representative documents from the intended use cases.
 3. Cloud-only OneDrive integration, OCR if needed, controlled file organisation with preview/undo, and durable background delivery monitoring.
-4. Representative Word layout tests (tables, annexes, fonts, images, headers, footnotes), timeout/process cleanup and locked-file recovery on Dr Donkor's computer.
-5. Packaging, updates, data protection, backup/restore, dependency/security review, and accessibility acceptance testing with Dr Donkor.
+4. Representative Word layout tests (tables, annexes, fonts, images, headers, footnotes), timeout/process cleanup and locked-file recovery on supported Windows devices.
+5. Packaging, updates, data protection, backup/restore, dependency/security review, and accessibility acceptance testing with representative users, including people with low vision.
 6. Complete manual release checks; do not label this build production-ready until these gates pass.
-
-## Research grounding
-
-- UN-hosted African Water Development Report presentation names Stephen Maxwell Donkor and UNECA: https://sustainabledevelopment.un.org/content/documents/3225donkor.pdf
-- UNECA 2019 forum page lists his water/sanitation work: https://archive.uneca.org/arfsd2019/pages/arfsd2019-presentations
-- Public self-published CV names Holland Africa Research & Development: https://independent.academia.edu/StephenDonkor/CurriculumVitae
-
-Historical contact addresses, dates of birth and private details are not imported into the application.
 
 ## Integration references
 
