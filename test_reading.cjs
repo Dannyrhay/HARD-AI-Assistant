@@ -1,0 +1,7 @@
+const fs=require('node:fs'),assert=require('node:assert/strict'),{JSDOM}=require('./.ui-deps/node_modules/jsdom');
+const dom=new JSDOM('<button id="read">Read aloud</button><main id="main"><button>Unnecessary control</button><article class="chat-message assistant"><div class="chat-text">Earlier answer</div></article><article class="chat-message assistant"><div class="chat-text"><p>I am HARD. Useful answer.</p><pre>secret code block</pre><button>Copy</button></div></article></main>',{runScripts:'outside-only',url:'http://localhost'}),w=dom.window;
+let spoken=[];w.speechSynthesis={getVoices:()=>[{voiceURI:'local',localService:true,lang:'en-GB',name:'Local English'}],speak:u=>spoken.push(u),cancel:()=>spoken=[]};w.SpeechSynthesisUtterance=function(t){this.text=t};
+w.$=id=>w.document.getElementById(id);w.main=w.$('main');w.say=()=>{};
+const source=fs.readFileSync('dist/app.js','utf8');w.eval(source.slice(source.indexOf('function readAnswer(){'),source.indexOf("if('speechSynthesis' in window)speechSynthesis.addEventListener")));
+w.readAnswer();assert.equal(spoken.length,1);assert(spoken[0].text.includes('I am Hard.'));assert(!spoken[0].text.includes('Earlier'));assert(!spoken[0].text.includes('secret'));assert(!spoken[0].text.includes('Unnecessary'));assert.equal(spoken[0].voice.voiceURI,'local');
+w.speechSynthesis.speaking=true;w.readAnswer();assert.equal(spoken.length,0);dom.window.close();console.log('Read aloud selects latest answer, removes code/controls, chooses a local voice and stops.');
