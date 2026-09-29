@@ -42,8 +42,14 @@ jobs:
         run: ./.desktop-venv/Scripts/python.exe -m unittest discover -v
       - name: Run interface tests and JavaScript syntax checks
         run: npm test
+      - name: Install browser for journey tests
+        run: npx playwright install chromium
+      - name: Run browser journey tests
+        run: npm run test:e2e
       - name: Build Windows desktop app
         run: ./Build-Desktop.ps1
+      - name: Verify installation and failed-update rollback
+        run: ./.desktop-venv/Scripts/python.exe scripts/check-installer.py
       - name: Check packaged application startup
         run: |
           @'

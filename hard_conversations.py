@@ -5,6 +5,7 @@ import threading
 import time
 from hard_core import UserError, identifier, text, safe_name
 from hard_chat import MAX_BYTES
+from hard_workflows import route_request
 
 class Conversations:
     def __init__(self, workspace, chat):
@@ -17,6 +18,8 @@ class Conversations:
             """)
             if 'web' not in {r[1] for r in db.execute('PRAGMA table_info(chat_turns)')}:
                 db.execute("ALTER TABLE chat_turns ADD COLUMN web TEXT NOT NULL DEFAULT '{}'")
+            if 'actions' not in {r[1] for r in db.execute('PRAGMA table_info(chat_turns)')}:
+                db.execute("ALTER TABLE chat_turns ADD COLUMN actions TEXT NOT NULL DEFAULT '[]'")
             db.execute("UPDATE chat_turns SET status='failed',error='HARD closed before this answer finished. Your question was saved; send it again if needed.' WHERE status='pending'")
     def listing(self):
         with self.workspace.db() as db:
@@ -26,9 +29,9 @@ class Conversations:
             row=db.execute('SELECT * FROM conversations WHERE id=?',(cid,)).fetchone()
             if not row:raise UserError('This conversation was not found.')
             result=dict(row);result['attachments']=json.loads(result['attachments']);result['messages']=[]
-            for turn in db.execute('SELECT id,question,answer,error,status,sources,web,length(files)>2 AS has_files FROM chat_turns WHERE conversation_id=? ORDER BY created,id',(cid,)):
+            for turn in db.execute('SELECT id,question,answer,error,status,sources,web,actions,length(files)>2 AS has_files FROM chat_turns WHERE conversation_id=? ORDER BY created,id',(cid,)):
                 result['messages'].append({'role':'user','content':turn['question'],'web':json.loads(turn['web']),'sources':json.loads(turn['sources']),'attachment_turn':turn['id'] if turn['has_files'] else None})
-                if turn['answer']:result['messages'].append({'role':'assistant','content':turn['answer'],'web':json.loads(turn['web'])})
+                if turn['answer']:result['messages'].append({'role':'assistant','content':turn['answer'],'actions':json.loads(turn['actions']),'turn_id':turn['id'],'web':json.loads(turn['web'])})
                 elif turn['error']:result['messages'].append({'role':'error','content':turn['error'],'web':json.loads(turn['web']),'retry_turn':turn['id'] if turn['status']=='failed' else None})
             return result
     def files(self,turn_id):
@@ -85,13 +88,13 @@ class Conversations:
                 db.execute('INSERT INTO chat_turns(id,conversation_id,question,status,sources,files,created) VALUES(?,?,?,?,?,?,?)',(rid,cid,question,'pending',json.dumps([{'name':f['name'],'mode':'attached file'} for f in files]),json.dumps(files),now))
             with self.workspace.db() as db:db.execute('UPDATE chat_turns SET web=? WHERE id=?',(json.dumps({'enabled':body.get('web_search',False)}),rid))
             try:
-                result=self.chat.answer({**body,'history':history,'attachments':files})
+                result=route_request(self.workspace,question,files) or self.chat.answer({**body,'history':history,'attachments':files})
             except Exception as exc:
                 error=str(exc) if isinstance(exc,UserError) else 'HARD could not finish this answer. Your question is saved. Try again when ready.'
                 with self.workspace.db() as db:db.execute("UPDATE chat_turns SET status='failed',error=? WHERE id=?",(error,rid))
                 return {'conversation':self.get(cid),'error':error}
             with self.workspace.db() as db:
-                db.execute("UPDATE chat_turns SET status='complete',answer=?,sources=?,web=? WHERE id=?",(result['answer'],json.dumps(result['attachments']),json.dumps(result.get('web',{})),rid))
+                db.execute("UPDATE chat_turns SET status='complete',answer=?,sources=?,web=?,actions=? WHERE id=?",(result['answer'],json.dumps(result['attachments']),json.dumps(result.get('web',{})),json.dumps(result.get('actions',[])),rid))
                 db.execute('UPDATE conversations SET updated=? WHERE id=?',(time.time(),cid))
             return {'conversation':self.get(cid)}
         finally:self.lock.release()
@@ -118,7 +121,7 @@ class Conversations:
                 with self.workspace.db() as db:db.execute("UPDATE chat_turns SET status='failed',error=? WHERE id=?",(error,rid))
                 return {'conversation':self.get(cid),'error':error}
             with self.workspace.db() as db:
-                db.execute("UPDATE chat_turns SET status='complete',answer=?,error=NULL,sources=?,web=? WHERE id=?",(result['answer'],json.dumps(result['attachments']),json.dumps(result.get('web',{})),rid))
+                db.execute("UPDATE chat_turns SET status='complete',answer=?,error=NULL,sources=?,web=?,actions=? WHERE id=?",(result['answer'],json.dumps(result['attachments']),json.dumps(result.get('web',{})),json.dumps(result.get('actions',[])),rid))
                 db.execute('UPDATE conversations SET updated=? WHERE id=?',(time.time(),cid))
             return {'conversation':self.get(cid)}
         finally:self.lock.release()

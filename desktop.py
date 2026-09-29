@@ -56,8 +56,18 @@ def main():
     kernel.CreateMutexW.argtypes=[ctypes.c_void_p,ctypes.c_bool,ctypes.c_wchar_p]
     handle=kernel.CreateMutexW(None,False,'Local\\HARD-Assistant-Desktop')
     if ctypes.get_last_error()==183:
+        if '--restore-backup' in sys.argv:return 3
         ctypes.windll.user32.MessageBoxW(None,'HARD is already open. Switch to its window.','HARD Assistant',64)
         return 0
+    if '--restore-backup' in sys.argv:
+        try:
+            from hard_backup import restore_backup
+            if '--confirmed' not in sys.argv:return 2
+            restore_backup(sys.argv[sys.argv.index('--restore-backup')+1],data_directory())
+            return 0
+        except Exception:return 1
+        finally:
+            kernel.CloseHandle.argtypes=[ctypes.c_void_p];kernel.CloseHandle(handle)
     server=None
     try:
         import webview

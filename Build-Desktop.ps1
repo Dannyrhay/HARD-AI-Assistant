@@ -6,5 +6,5 @@ $webAssets = (Join-Path $PSScriptRoot 'dist') + ';dist'
 $wordScript = (Join-Path $PSScriptRoot 'word-export.ps1') + ';.'
 & $python -m PyInstaller --noconfirm --windowed --onedir --icon (Join-Path $PSScriptRoot 'brand/hard-icon.ico') --name 'HARD Assistant' --distpath release --workpath .desktop-build --specpath .desktop-build --add-data $webAssets --add-data $wordScript desktop.py
 if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
-Copy-Item -LiteralPath 'Install-HARD.ps1','DESKTOP-README.txt' -Destination 'release' -Force
+Copy-Item -LiteralPath 'Install-HARD.ps1','Restore-HARD.ps1','DESKTOP-README.txt','VERSION' -Destination 'release' -Force
 Copy-Item -LiteralPath 'brand/hard-icon.ico' -Destination 'release/HARD Assistant/hard-icon.ico' -Force

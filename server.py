@@ -14,12 +14,14 @@ from hard_ai import AIReview
 from hard_chat import Chat
 from hard_conversations import Conversations
 from hard_models import ModelCatalog
+from hard_backup import create_backup
 from hard_preview import preview
+from hard_workflows import FileJournal, DraftRecovery, email_preflight, VERSION
 
 BASE=Path(__file__).parent.resolve()
 
 def handler_factory(workspace,mail,origin,desktop=False):
-    ai=AIReview(workspace);chat=Chat(ai);conversations=Conversations(workspace,chat);catalog=ModelCatalog()
+    ai=AIReview(workspace);chat=Chat(ai);conversations=Conversations(workspace,chat);catalog=ModelCatalog();journal=FileJournal(workspace);recovery=DraftRecovery(workspace,conversations)
     csrf=secrets.token_urlsafe(32)
     class Handler(BaseHTTPRequestHandler):
         server_version='HARD'
@@ -45,9 +47,11 @@ def handler_factory(workspace,mail,origin,desktop=False):
         def do_GET(self):
             try:
                 self.headers_ok();parsed=urlparse(self.path);path=parsed.path;query=parse_qs(parsed.query)
-                if path=='/api/state': return self.respond({**workspace.snapshot(),'accounts':mail.status(),'ai':ai.status(),'csrf':csrf,'profile':workspace.profile(),'desktop':desktop})
+                if path=='/api/state': return self.respond({**workspace.snapshot(),'accounts':mail.status(),'ai':ai.status(),'csrf':csrf,'profile':workspace.profile(),'desktop':desktop,'version':VERSION})
                 if path.startswith('/api/chat-attachments/'): return self.respond(conversations.files(path.rsplit('/',1)[1]))
                 if path=='/api/openrouter-models': return self.respond(catalog.list(query.get('refresh',['0'])[0]=='1'))
+                if path=='/api/recovery': return self.respond(recovery.load())
+                if path=='/api/file-operations': return self.respond(journal.listing())
                 if path=='/api/conversations': return self.respond(conversations.listing())
                 if path.startswith('/api/conversation/'): return self.respond(conversations.get(path.rsplit('/',1)[1]))
                 if path=='/api/ai-review': return self.respond(ai.saved(query.get('id',[''])[0]))
@@ -69,6 +73,7 @@ def handler_factory(workspace,mail,origin,desktop=False):
                 if path not in allowed: return self.respond({'error':'Not found'},404)
                 asset=BASE/'dist'/allowed[path]
                 return self.respond(asset.read_bytes(),content_type=mimetypes.guess_type(asset)[0] or 'application/octet-stream')
+            except (BrokenPipeError,ConnectionResetError,ConnectionAbortedError): pass
             except UserError as exc: self.respond({'error':str(exc)},400)
             except (OSError,ValueError): self.respond({'error':'This file or request is unavailable.'},400)
             except Exception: self.respond({'error':'HARD could not complete this request. Please try again.'},500)
@@ -89,6 +94,10 @@ def handler_factory(workspace,mail,origin,desktop=False):
                     if not desktop: raise UserError('Open the HARD desktop app to use Windows voice typing.')
                     from hard_voice import start_voice_typing
                     result=start_voice_typing()
+                elif path=='/api/backup': return self.respond(create_backup(workspace),content_type='application/zip',filename='HARD-backup.zip')
+                elif path=='/api/recovery': result=recovery.save(body)
+                elif path=='/api/undo-file': result=journal.undo(body.get('id'),body.get('confirmed'))
+                elif path=='/api/email-preflight': result=email_preflight(workspace,body)
                 elif path=='/api/chat': result=conversations.send(body)
                 elif path=='/api/chat-retry': result=conversations.retry(body)
                 elif path=='/api/delivery-notice': result=mail.notice_details(body.get('provider'),body.get('id'))
@@ -101,7 +110,7 @@ def handler_factory(workspace,mail,origin,desktop=False):
                     try: data=base64.b64decode(body.get('data',''),validate=True)
                     except Exception as exc: raise UserError('The file upload was incomplete.') from exc
                     result=workspace.import_document(body.get('name'),data)
-                elif path=='/api/rename-file': result=workspace.rename_file(body.get('id'),body.get('name'),body.get('confirmed'))
+                elif path=='/api/rename-file': result=journal.perform('rename',body)
                 elif path=='/api/duplicates': result=workspace.duplicates()
                 elif path=='/api/reveal-file':
                     if not desktop: raise UserError('Open in folder is available in the desktop app.')
@@ -109,7 +118,7 @@ def handler_factory(workspace,mail,origin,desktop=False):
                     file=workspace.indexed_path(body.get('id'))
                     subprocess.Popen(['explorer.exe','/select,',str(file)],shell=False)
                     result={'opened':True}
-                elif path=='/api/organise-file': result=workspace.organise_file(body.get('id'),body.get('folder_id'),body.get('project'))
+                elif path=='/api/organise-file': result=journal.perform('move' if body.get('mode')=='move' else 'copy',body)
                 elif path=='/api/import-indexed': result=workspace.import_indexed(body.get('id'))
                 elif path=='/api/decide': result=workspace.decide(body.get('id'),body.get('issue_id'),body.get('note'))
                 elif path=='/api/approve-document': result=workspace.approve(body.get('id'))
@@ -125,7 +134,10 @@ def handler_factory(workspace,mail,origin,desktop=False):
                     result={'removed':True}
                 elif path=='/api/contacts': result=workspace.add_contact(body.get('name'),body.get('email'),body.get('organization'),body.get('source'),body.get('confirm'))
                 elif path=='/api/check-recipient': result=workspace.check_recipient(body.get('email'))
-                elif path=='/api/stage-email': result=workspace.stage_email(body.get('contact_id'),body.get('document_id'),body.get('subject'),body.get('body'),body.get('provider'),body.get('visual_confirmed'),body.get('recipient'))
+                elif path=='/api/stage-email':
+                    preflight=email_preflight(workspace,body)
+                    if preflight['warnings'] and body.get('preflight_token')!=preflight['token']:raise UserError('Run the email checks and review the warnings before saving this draft.')
+                    result=workspace.stage_email(body.get('contact_id'),body.get('document_id'),body.get('subject'),body.get('body'),body.get('provider'),body.get('visual_confirmed'),body.get('recipient'))
                 elif path=='/api/approve-email': result=mail.approve(body.get('id'),body.get('confirmed'),body.get('expected_sender'))
                 elif path=='/api/send': result=mail.send(body.get('id'),body.get('approval'))
                 elif path=='/api/configure-account': result=mail.configure(body.get('provider'),body.get('credentials'))
@@ -139,9 +151,10 @@ def handler_factory(workspace,mail,origin,desktop=False):
                 elif path=='/api/failures': result=mail.failures(body.get('provider'))
                 else: return self.respond({'error':'Not found'},404)
                 self.respond(result)
+            except (BrokenPipeError,ConnectionResetError,ConnectionAbortedError): pass
             except UserError as exc: self.respond({'error':str(exc)},400)
             except (ValueError,TypeError,KeyError): self.respond({'error':'The request was incomplete. Please check the fields and try again.'},400)
-            except Exception: self.respond({'error':'HARD could not complete this request. Your original files are unchanged.'},500)
+            except Exception: self.respond({'error':'HARD could not complete this request. Check the current status before repeating a file change or email send.'},500)
     return Handler
 
 def main():

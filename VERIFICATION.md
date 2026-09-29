@@ -177,3 +177,5 @@ Combined retry/email-status build installed while HARD was closed. Package integ
 Installed while HARD was closed; installed files matched release, ZIP integrity and desktop smoke checks passed. The specific resolved 17 September notice was marked handled after matching its diagnostic recipient. Gmail contents unchanged.
 
 2026-09-21: Optional OpenRouter public web search with capped server searches, saved citations and retry mode. 108 Python tests passed. Live public UN-Water query succeeded with three citation URLs. No database access added.
+
+2026-09-29 v0.2.0: 119 Python tests, 8 interface test files, 6 isolated Playwright browser journeys passed. Tested backup integrity, restoration, credential exclusion, guarded copy/move/rename undo, recovery after reload, email typo preflight, model switching, narrow viewport, installer startup rollback and workspace preservation. Packaged service and window smoke checks passed. Live Word/email/hardware acceptance remains separate.

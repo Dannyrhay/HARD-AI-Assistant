@@ -64,3 +64,11 @@ Retry answer under a failed response resends the saved message and original atta
 
 DELIVERY INBOX
 Mark a delivery notice as handled after you resolve it. HARD remembers this for the connected account and stops repeating its alert. Handled history stays on this PC and lets you move a notice back to attention. New notice IDs still alert even for the same recipient. No email is deleted, changed or resent. Check now refreshes the scan; regular checks run every five minutes while HARD is open.
+
+
+VERSION 0.2.0
+Chat now opens local file, document and email workflows with review steps.
+Unsent chat and email drafts recover after restart. Find a file includes persistent undo for unchanged copies, moves and renames.
+Backups: Settings > Backups and updates. Keep backup ZIP files private: they contain unencrypted documents and conversations, but exclude API keys and account tokens. External work folders are not backed up.
+Restore: close HARD, then run Restore-HARD.ps1 from this package. Only use a trusted HARD backup. Your previous Data folder is kept. Reselect work folders after restoring.
+Update: close HARD, extract the whole package, run Install-HARD.ps1. Setup validates staged files and startup before replacing the previous application. Your workspace stays separate.

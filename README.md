@@ -18,16 +18,16 @@ Open http://127.0.0.1:5188. Keep the service running. It binds only to loopback.
 
 ## Implemented
 
-- Minimal home screen: one typed request and three actions; no sidebar. Adjustable 20/24/28/40px text, keyboard focus, optional browser dictation and read-aloud.
+- Chat workspace with a sidebar for documents, files, email and saved conversations. Adjustable 20/24/28/40px text, keyboard focus, optional browser dictation and read-aloud.
 - Import actual DOCX/PDF/UTF-8 text, read without overwriting originals, deduplicate imported content by SHA-256, save versioned corrections and reviews in SQLite.
-- Explicitly selected folder indexing, including locally synced OneDrive folders; no whole-drive scans. Overlapping roots and symlink/junction traversal are rejected or skipped. Indexing is limited to 10,000 files; search returns the first 100 matches.
+- Explicitly selected folder indexing, including locally synced OneDrive folders; no whole-drive scans. Overlapping roots and symlink/junction traversal are rejected or skipped. Indexing is limited to 10,000 files; results are displayed in pages of ten.
 - Mechanical document checks for placeholders, repeated words, comments, tracked changes, multiple currencies and email addresses. These checks do not certify facts, spelling, grammar or arithmetic.
 - Exact single-occurrence corrections in supported Word runs/body/table paragraphs, preserving other formatting. Complex edits fail explicitly and require Word. Revisions are separate documents.
 - Word PDF export with macro execution and link updates disabled; PDF parsing/page checks and a coarse extracted-text comparison. User must inspect and approve actual PDF pages before preparing email.
 - Manually verified contacts with a source note; typed-address comparison suggests similar saved addresses but never silently substitutes one.
 - Durable immutable email drafts, real EML download with the exact PDF attachment, approval-bound sender check and attachment hash check. The send service uses a single-attempt state transition; network uncertainty prevents automatic resend.
-- Gmail and Outlook OAuth adapters using PKCE/state validation and Windows DPAPI-encrypted token storage. These are implemented but **not live-tested**. Gmail reports sent only after a provider receipt; Outlook reports accepted. Neither status means delivered.
-- On-demand possible delivery-notice search for connected accounts, explicitly not exhaustive and not background monitoring.
+- Gmail and Outlook OAuth adapters using PKCE/state validation and Windows DPAPI-encrypted token storage. Gmail has passed a development send test; OAuth refresh, revocation and Outlook still require live acceptance testing. Gmail reports sent only after a provider receipt; Outlook reports accepted. Neither status means delivered.
+- Delivery-notice checks for connected accounts run every five minutes while HARD is open. Handled notices stay dismissed; results are not exhaustive.
 - Host/Origin/CSRF checks; no CORS; static asset allowlist; private database and tokens never served as static files. No request-body or OAuth-code logging.
 
 ## Account setup required before integration tests
@@ -46,7 +46,7 @@ Disconnect removes HARD's saved local token. It does not revoke the provider's s
 
 ## Data and recovery
 
-`.data/` contains copied documents, review notes, contacts, drafts and audit events. Tokens are encrypted for the current Windows user. The documents/database are local plaintext protected by the Windows account/filesystem; no application-level encryption, backup schedule or installer has been implemented. Back up `.data` only while HARD is stopped. Never include `.data`, `.test-data`, tokens or OAuth credentials in source control or hosting archives.
+`.data/` contains copied documents, review notes, contacts, drafts and audit events. Tokens are encrypted for the current Windows user. The documents/database are local plaintext protected by the Windows account/filesystem; there is no application-level encryption or scheduled backup. Version 0.2.0 provides manual backup/restore and a Windows installer. Back up `.data` only while HARD is stopped. Never include `.data`, `.test-data`, tokens or OAuth credentials in source control or hosting archives.
 
 Test fixtures are fictional and stored in `.test-data/`. Isolated automated tests use temporary directories. Keep fictional test accounts and contacts separate from real user data. Reopening an in-flight send after a crash marks it uncertain; inspect the provider's Sent folder before deciding what to do.
 
@@ -92,3 +92,14 @@ Every push and pull request runs the Python suite and all `test_*.cjs` interface
 To run interface checks locally, install Node.js 24, run `npm ci`, then `npm test`. Python tests use `./.desktop-venv/Scripts/python.exe -m unittest discover -v` after installing `requirements-desktop-lock.txt` into that environment.
 
 CI does not verify live email delivery, paid AI calls, microphone hardware, the interactive desktop window or activated Microsoft Word conversion. Those still require desktop acceptance checks.
+
+## Version 0.2.0: local workflows and recovery
+
+- Ask chat to find files, prepare an email, review a document or convert a file. Supported requests show local action buttons. They do not call an AI provider or send email automatically. General questions still use the selected provider.
+- Organise files with a destination preview. Copy preserves the original; move supports destinations on the same drive. Copies, moves and renames have persistent undo under Find a file. Undo checks content hashes and refuses changed files or name collisions. Duplicate review compares file contents without deleting files.
+- Email preflight flags unfamiliar addresses, similar contacts, common domain typos, placeholders and named attachments that are not included. It does not prove an address exists. Every email still requires PDF review and a final sending approval; uncertain sends are never retried automatically.
+- The current unsent chat (including attachments) and email form are saved locally shortly after editing and restored after restart. Recipient and PDF approval checkboxes must be checked again. Drafts are local plaintext, like the rest of the workspace.
+- Settings > Backups and updates downloads a validated backup of chats, contacts, drafts and imported documents (up to 512 MB). Backups are unencrypted and exclude API keys and account credentials. They do not include original files in external work folders. Close HARD and run `Restore-HARD.ps1` to restore a trusted backup; the prior Data folder is retained. Reselect work folders after restoring. File undo from a restored backup is disabled to protect current external files.
+- The installer stages new files, checks their hashes and verifies startup before removing the previous application. A failed startup restores the previous installation. Workspace data remains separate. Updates are manual; the Settings link opens GitHub Releases, where an installer must be published before it is available to other users.
+
+Run `npx playwright install chromium` and `npm run test:e2e` for isolated browser journeys. CI includes these tests. They use temporary workspaces and simulated providers, never personal files or real mailboxes.

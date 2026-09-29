@@ -3,9 +3,11 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "test": "node scripts/test-ui.cjs"
+    "test": "node scripts/test-ui.cjs",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "jsdom": "29.1.1"
   }
 }
